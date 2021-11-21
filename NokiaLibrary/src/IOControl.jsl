@@ -1,0 +1,95 @@
+package com.nokia.m2m.imp.iocontrol;
+
+import System.Windows.Forms.*;
+
+import java.io.IOException;
+import java.lang.IllegalArgumentException;
+
+import emulator.GUI;
+
+/**
+ * Summary description for IOControl.
+ */
+public class IOControl
+{
+    /// Hidden cache value.
+    private static boolean[] checkboxesValues = null;
+
+	private IOControl()
+	{
+	}
+
+	private static IOControl instance_ = null;
+
+	public static IOControl getInstance()
+	{
+		if (instance_ == null)
+		{
+			instance_ = new IOControl();
+		}
+		return instance_;
+	}
+
+	/** @delegate */
+	delegate void SetCheckedDelegate(boolean isChecked);
+
+	public void setDigitalOutputPin(int pin, boolean state) throws  IOException, IllegalArgumentException
+	{
+        if (GUI.cbIOControlOUT == null || GUI.cbIOControlOUT.length == 0)
+		{
+			throw new IllegalArgumentException("IOControl: not initalized!");
+		}
+        if (checkboxesValues == null)
+        {
+            checkboxesValues = new boolean[GUI.cbIOControlOUT.length];
+        }
+        if (pin < 0 || pin >= GUI.cbIOControlOUT.length || GUI.cbIOControlOUT[pin] == null)
+		{
+            throw new IllegalArgumentException("IOControl.setDigitalOutputPin: Invalid pin " + pin + " specified!");
+		}
+        checkboxesValues[pin] = state;
+
+        CheckBox cb = GUI.cbIOControlOUT[pin];
+        GUI.log("iocontrol", "set output", "pin " + pin, state ? "ON" : "OFF");
+		if (cb.get_InvokeRequired())
+		{
+			SetCheckedDelegate scd = new SetCheckedDelegate(cb, "set_Checked");
+			cb.Invoke(scd, new Object[] { (System.Boolean)state });
+		}
+		else
+		{
+			cb.set_Checked(state);
+		}
+	}
+
+    public boolean getDigitalOutputPin(int pin) throws  IOException, IllegalArgumentException
+    {
+        if (checkboxesValues == null)
+        {
+            checkboxesValues = new boolean[GUI.cbIOControlOUT.length];
+        }
+        if (pin < 0 || pin >= checkboxesValues.length)
+        {
+            throw new IllegalArgumentException("IOControl.getDigitalOutputPin: Invalid pin " + pin + " specified!");
+        }
+        return checkboxesValues[pin];
+    }
+
+    public boolean getDigitalInputPin(int pin) throws  IOException, IllegalArgumentException
+    {
+        if (pin <= 5 || pin >= GUI.IOControlIN.length)
+        {
+            throw new IllegalArgumentException("IOControl.getDigitalInputPin: Invalid pin " + pin + " specified!");
+        }
+        return GUI.IOControlIN[pin];
+    }
+
+    public int getAnalogInputPin(int pin) throws  IOException, IllegalArgumentException
+    {
+        if (pin <= 0 || pin > GUI.IOControlAnalogInputs.length)
+        {
+            throw new IllegalArgumentException("IOControl.getAnalogInputPin: Invalid pin " + pin + " specified!");
+        }
+        return GUI.IOControlAnalogInputs[pin - 1];
+    }
+}

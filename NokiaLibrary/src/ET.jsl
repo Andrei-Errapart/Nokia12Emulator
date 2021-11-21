@@ -1,0 +1,19 @@
+package com.nokia.m2m.orb.idl.terminal;
+
+import System.Windows.Forms.*;
+import emulator.GUI;
+
+/**
+ * Summary description for ET.
+ */
+public class ET
+{
+	public ET()
+	{
+	}
+
+	public String IMEI()
+	{
+        return GUI.tbIMEI == null ? "1234567890" : GUI.tbIMEI.get_Text();
+	}
+}

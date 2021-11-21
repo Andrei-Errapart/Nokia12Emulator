@@ -1,0 +1,129 @@
+package com.nokia.m2m.imp.watchdog;
+
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+
+import System.Windows.Forms.*;
+import emulator.*;
+
+/**
+ * Summary description for WatchdogTimer.
+ */
+public class WatchdogTimer
+{
+	private static int timeout_ = 0;
+	private static long timeoutTime_ = -1;
+	private static boolean expirationReported_ = false;
+
+	/** String representation of time given in seconds.
+	 * Format: 12h 30m 4s.
+	 */
+	private final static String stringOfTime(long time_in_seconds)
+	{
+		long hours = time_in_seconds / 3600;
+		long minutes = (time_in_seconds - 3600 * hours) / 60;
+		long seconds = time_in_seconds - 3600 * hours - 60 * minutes;
+
+		StringBuffer sb = new StringBuffer();
+
+		if (hours > 0)
+		{
+			sb.append(hours);
+			sb.append("h ");
+		}
+		if (hours > 0 || minutes > 0)
+		{
+			sb.append(minutes);
+			sb.append("m ");
+		}
+		sb.append(seconds);
+		sb.append("s");
+
+		return sb.toString();
+	}
+
+	private final static SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss");
+
+    /// Should be called once per second.
+	public final static void timer()
+	{
+		if (timeout_ > 0)
+		{
+			updateTimeToReset_();
+		}
+	}
+
+	// --- PUBLIC INTERFACE ----
+	public WatchdogTimer()
+	{
+		if (timeout_ > 0)
+		{
+			updateTimeToReset_();
+		}
+	}
+
+	private final static void updateTimeToReset_()
+	{
+		long current_time = System.currentTimeMillis();
+		long dt = timeoutTime_ - current_time;
+		if (dt >= 0)
+		{
+			Utils.setText(GUI.lblWatchdogTimeToAlarm, stringOfTime(dt / 1000));
+		}
+		else
+		{
+			Utils.setText(GUI.lblWatchdogTimeToAlarm, "EXPIRED");
+			if (!expirationReported_)
+			{
+				GUI.log("watchdog", "Watchdog expired!", "", "FAIL");
+				expirationReported_ = true;
+			}
+		}
+	}
+
+	private final static void resetTimer_()
+	{
+		if (timeout_ > 0)
+		{
+			timeoutTime_ = System.currentTimeMillis() + timeout_ * 1000;
+			Utils.setText(GUI.lblWatchdogAlarmTime, timeFormat.format(new Date(timeoutTime_)));
+			updateTimeToReset_();
+		}
+	}
+
+	public final void setTimeout(int timeout) throws IllegalArgumentException
+	{
+		if (timeout == 0)
+		{
+			timeout_ = 0;
+			Utils.setText(GUI.lblWatchdogTimeout, "Disabled");
+			Utils.setText(GUI.lblWatchdogTimeToAlarm, "");
+			Utils.setText(GUI.lblWatchdogAlarmTime, "");
+			GUI.log("watchdog", "Disabled.", "", "OK");
+		}
+		else if (timeout > 0)
+		{
+			timeoutTime_ = System.currentTimeMillis() + timeout * 1000;
+			timeout_ = timeout;
+
+			Utils.setText(GUI.lblWatchdogTimeout, stringOfTime(timeout));
+			resetTimer_();
+			GUI.log("watchdog", "Setting timeout to " + stringOfTime(timeout), "", "OK");
+		}
+		else
+		{
+			GUI.log("watchdog", "Invalid timeout specified:" + timeout, "", "FAIL");
+			throw new IllegalArgumentException("WatchdogTimer.setTimeout: invalid argument:" + timeout);
+		}
+	}
+
+	public final void resetTimer()
+	{
+		if (timeout_>0)
+		{
+			GUI.log("watchdog", "Watchdog reset", "", "OK");
+			resetTimer_();
+		}
+	}
+}

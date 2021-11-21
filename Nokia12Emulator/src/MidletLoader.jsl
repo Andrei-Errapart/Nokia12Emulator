@@ -1,0 +1,177 @@
+package Nokia12Emulator;
+
+import System.Windows.Forms.*;
+import System.Reflection.*;
+import System.*;
+
+/**
+ * Summary description for MidletLoader.
+ */
+public class MidletLoader implements Runnable
+{
+    private Assembly assembly = null;
+    private String midletFullName = null;
+    private javax.microedition.midlet.MIDlet midlet = null;
+    private TextBox tbMidletStatus = null;
+
+
+    // function thread.
+    private Thread thread = null;
+    // function.
+    private final static int FUNCTION_NONE = 0;
+    private final static int FUNCTION_STOP = 1;
+    private final static int FUNCTION_START = 2;
+    private int runFunction = FUNCTION_NONE;
+
+    private final void log(String text)
+    {
+        if (emulator.GUI.tbEventLog != null)
+        {
+            Utils.appendText(emulator.GUI.tbEventLog, "MidletLoader:" + text + "\r\n");
+        }
+    }
+
+    public MidletLoader(
+        String  Filename,
+        TextBox tbName,
+        TextBox tbMidletStatus
+        )
+    {
+        this.tbMidletStatus = tbMidletStatus;
+        assembly = Assembly.LoadFrom(Filename);
+
+        log("Loading assembly: " + assembly.get_FullName());
+
+        {
+            Type[] t = assembly.GetTypes();
+            if (t != null)
+            {
+                int i;
+                for (i = 0; i < t.length; ++i)
+                {
+                    Type bt = t[i].get_BaseType();
+                    if (bt != null && bt.get_FullName().equals("javax.microedition.midlet.MIDlet"))
+                    {
+                        midletFullName = t[i].get_FullName();
+                        break;
+                    }
+                }
+            }
+        }
+        if (midletFullName == null)
+        {
+            throw new RuntimeException("MidletLoader: no Midlets in " + Filename + ".");
+        }
+        log("Class name: " + midletFullName);
+        tbName.set_Text(assembly.GetName().get_Name());
+    }
+
+    public void run()
+    {
+        try
+        {
+            switch (runFunction)
+            {
+                case FUNCTION_START:
+                    midlet = (javax.microedition.midlet.MIDlet)assembly.CreateInstance(midletFullName);
+                    if (midlet == null)
+                    {
+                        log("Error: created class was not a MIDlet!");
+                    }
+                    else
+                    {
+                        log("Class created.");
+                        try
+                        {
+                            midlet.startApp();
+                            Utils.setText(tbMidletStatus, "Running");
+                            log("Midlet started");
+                        }
+                        catch (javax.microedition.midlet.MIDletStateChangeException ex)
+                        {
+                            log("Midlet not started, error:" + ex);
+                            MessageBox.Show(ex.ToString(), "Midlet start error");
+                        }
+                    }
+                    break;
+                case FUNCTION_STOP:
+                    try
+                    {
+                        midlet.destroyApp(true);
+                        midlet = null;
+                        Utils.setText(tbMidletStatus, "Stopped");
+                    }
+                    catch (javax.microedition.midlet.MIDletStateChangeException ex)
+                    {
+                        log("Midlet stopped badly, error:" + ex);
+                        midlet = null;
+                        Utils.setText(tbMidletStatus, "Error");
+                        MessageBox.Show(ex.ToString(), "Midlet stop error");
+                    }
+                    log("Midlet stopped.");
+                    break;
+                default:
+                    // pass.
+            }
+        }
+        finally
+        {
+            thread = null;
+        }
+    }
+
+    private final void doFunction(int function_number)
+    {
+        runFunction = function_number;
+        thread = new Thread(this);
+        thread.start();
+    }
+
+    public void start()
+    {
+        if (midlet == null)
+        {
+            if (thread == null)
+            {
+                // GOOD!
+                doFunction(FUNCTION_START);
+            }
+            else
+            {
+                // bad.
+                MessageBox.Show("MidletLoader: Midlet state change in progress.", "Nokia12Emulator: Error");
+            }
+        }
+        else
+        {
+            // bad.
+            MessageBox.Show("MidletLoader: Midlet already started.", "Nokia12Emulator: Error");
+        }
+    }
+
+    public void stop(boolean arg0)
+    {
+        if (midlet == null)
+        {
+            // bad.
+            MessageBox.Show("MidletLoader: Midlet not started (yet).", "Nokia12Emulator: Error");
+        }
+        else
+        {
+            if (thread == null)
+            {
+                // GOOD!
+                doFunction(FUNCTION_STOP);
+            }
+            else
+            {
+                MessageBox.Show("MidletLoader: Midlet state change in progress.", "Nokia12Emulator: Error");
+            }
+        }
+    }
+
+    public boolean IsRunning()
+    {
+        return midlet != null || thread != null;
+    }
+}

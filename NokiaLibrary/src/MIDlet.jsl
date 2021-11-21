@@ -1,0 +1,19 @@
+package javax.microedition.midlet;
+
+/**
+ * Summary description for MIDlet.
+ */
+public class MIDlet
+{
+    public void startApp() throws MIDletStateChangeException
+    {
+    }
+
+    public void pauseApp() throws MIDletStateChangeException
+    {
+    }
+
+    public void destroyApp(boolean arg0) throws MIDletStateChangeException
+    {
+    }
+}

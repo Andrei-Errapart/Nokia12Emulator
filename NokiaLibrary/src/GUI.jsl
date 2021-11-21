@@ -1,0 +1,64 @@
+package emulator;
+
+import java.text.*;
+import java.util.*;
+
+import System.Windows.Forms.*;
+import System.IO.Ports.SerialPort;
+import emulator.Utils.SetTextDelegate;
+
+/**
+ * GUI widgets.
+ */
+public class GUI
+{
+    // ---- Log ----
+    public static TextBox tbEventLog = null;
+
+    // ---- Port3 ----
+    public static TextBox tbSerialRealPort = null;
+    public static TextBox tbSerialStatus = null;
+    public static SerialPort spPort3 = null;
+
+    // ---- Watchdog ----
+    public static Label lblWatchdogTimeout = null;
+    public static Label lblWatchdogAlarmTime = null;
+    public static Label lblWatchdogTimeToAlarm = null;
+
+    public static TextBox tbIMEI = null;
+
+    // ---- IOControl ----
+    /// Checkboxes with values.
+    public static CheckBox[]    cbIOControlOUT  = null;
+    public static boolean[]     IOControlIN     = new boolean[12];
+    /// Analog inputs.
+    public static int[] IOControlAnalogInputs = new int[3];
+
+
+    private final static void appendText(TextBox textbox, String text)
+    {
+        if (textbox != null)
+        {
+            if (textbox.get_InvokeRequired())
+            {
+                SetTextDelegate d = new SetTextDelegate(textbox, "AppendText");
+                textbox.Invoke(d, new Object[] { text });
+            }
+            else
+            {
+                textbox.AppendText(text);
+            }
+        }
+    }
+
+    private final static SimpleDateFormat logFormat = new SimpleDateFormat("HH:mm:ss");
+
+    public static void log(String type, String description, String target, String status)
+    {
+        if (tbEventLog != null)
+        {
+            String text = logFormat.format(new Date()) + ":" + type + ":" + description + ":" + target + ":" + status + "\r\n";
+            appendText(tbEventLog, text);
+        }
+    }
+}
